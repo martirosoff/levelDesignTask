@@ -8,11 +8,11 @@ public class LevelManager : MonoBehaviour
     public class SpaceSector
     {
         public string sectorName = "Sector";
-        public Transform playerWaypoint; // Position and rotation the player moves to
-        public int enemyCount;            // Total enemies to kill in this wave
-
-        // Add this: The parent object holding all enemies for this sector
-        public GameObject sectorEnemyContainer;
+        
+        [Tooltip("The sequential list of points the player follows to reach this sector. The last point is the combat station.")]
+        public List<Transform> movementPath = new List<Transform>(); 
+        
+        public GameObject sectorEnemyContainer; 
     }
 
     [Header("Level Setup")]
@@ -24,12 +24,12 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private float rotationSpeed = 2f;
 
     private int currentSectorIndex = 0;
+    private int currentPathPointIndex = 0; // NEW: Tracks the current node in the sector's path
     private int remainingEnemies;
     private bool isMovingToSector = false;
 
     private void Start()
     {
-        // Default to Main Camera if player transform isn't manually assigned
         if (playerTransform == null && Camera.main != null)
         {
             playerTransform = Camera.main.transform;
@@ -41,7 +41,7 @@ public class LevelManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("No space sectors defined in the RailShooterManager!");
+            Debug.LogError("No space sectors defined in the LevelManager!");
         }
     }
 
@@ -56,28 +56,38 @@ public class LevelManager : MonoBehaviour
     private void InitializeSector(int index)
     {
         currentSectorIndex = index;
-        isMovingToSector = true;
-
-        // Automatically count active children in the container
-    if (sectors[index].sectorEnemyContainer != null)
-    {
-        remainingEnemies = sectors[index].sectorEnemyContainer.transform.childCount;
-    }
-    else
-    {
-        remainingEnemies = 0;
-    }
+        currentPathPointIndex = 0; // NEW: Reset path progress back to the first point
         
-        Debug.Log($"Advancing to {sectors[index].sectorName}. Get ready!");
+        // Safety check: Make sure the sector actually has at least one movement point
+        if (sectors[index].movementPath == null || sectors[index].movementPath.Count == 0)
+        {
+            Debug.LogError($"Sector {index} ({sectors[index].sectorName}) has no movement points assigned!");
+            return;
+        }
+
+        isMovingToSector = true;
+        
+        if (sectors[index].sectorEnemyContainer != null)
+        {
+            remainingEnemies = sectors[index].sectorEnemyContainer.transform.childCount;
+        }
+        else
+        {
+            remainingEnemies = 0;
+        }
+        
+        Debug.Log($"Advancing to {sectors[index].sectorName}. Traveling along path...");
     }
 
     private void ExecuteMovement()
     {
-        Transform targetWaypoint = sectors[currentSectorIndex].playerWaypoint;
+        // NEW: Get the exact target point we are currently heading towards in the list
+        List<Transform> activePath = sectors[currentSectorIndex].movementPath;
+        Transform targetWaypoint = activePath[currentPathPointIndex];
 
         if (targetWaypoint == null)
         {
-            Debug.LogError($"Sector {currentSectorIndex} is missing a player waypoint assignment!");
+            Debug.LogError($"Sector {currentSectorIndex} is missing waypoint index {currentPathPointIndex}!");
             isMovingToSector = false;
             return;
         }
@@ -89,14 +99,14 @@ public class LevelManager : MonoBehaviour
             moveSpeed * Time.deltaTime
         );
 
-        // Lerp rotation (important if sectors face different directions)
+        // Lerp rotation
         playerTransform.rotation = Quaternion.Slerp(
             playerTransform.rotation, 
             targetWaypoint.rotation, 
             rotationSpeed * Time.deltaTime
         );
 
-        // Check if player has arrived at the sector checkpoint
+        // Check if player has arrived at this specific path point
         if (Vector3.Distance(playerTransform.position, targetWaypoint.position) < 0.01f &&
             Quaternion.Angle(playerTransform.rotation, targetWaypoint.rotation) < 1f)
         {
@@ -104,19 +114,39 @@ public class LevelManager : MonoBehaviour
             playerTransform.position = targetWaypoint.position;
             playerTransform.rotation = targetWaypoint.rotation;
             
-            isMovingToSector = false;
-            Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName}. Combat active.");
-            
-            
-            OnArrivedAtSector();
+            // NEW: Check if there are more points left in this sector's path
+            if (currentPathPointIndex < activePath.Count - 1)
+            {
+                currentPathPointIndex++; // Target the next point on the next frame
+                Debug.Log($"Reached point {currentPathPointIndex - 1}. Moving to point {currentPathPointIndex}.");
+            }
+            else
+            {
+                // We reached the final point of the path! Stop moving and start combat.
+                isMovingToSector = false;
+                OnArrivedAtSector();
+            }
         }
     }
-    /// <summary>
-    /// Call this method from your Enemy Health script whenever an enemy is destroyed.
-    /// </summary>
+
+    private void OnArrivedAtSector()
+    {
+        Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName} final station. Combat active.");
+        
+        GameObject container = sectors[currentSectorIndex].sectorEnemyContainer;
+        if (container != null)
+        {
+            EnemyAI[] sectorEnemies = container.GetComponentsInChildren<EnemyAI>();
+            foreach (EnemyAI enemy in sectorEnemies)
+            {
+                enemy.WakeUp();
+            }
+        }
+    }
+
     public void RegisterEnemyDeath()
     {
-        if (isMovingToSector) return; // Prevent accidental triggers mid-transit
+        if (isMovingToSector) return; 
 
         remainingEnemies--;
         Debug.Log($"Enemy killed! Remaining in sector: {remainingEnemies}");
@@ -141,30 +171,8 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    private void OnArrivedAtSector()
-{
-    Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName}. Combat active.");
-    
-    GameObject container = sectors[currentSectorIndex].sectorEnemyContainer;
-    
-    if (container != null)
+    public bool IsCombatActive()
     {
-        // Find all EnemyAI components inside this sector's folder
-        EnemyAI[] sectorEnemies = container.GetComponentsInChildren<EnemyAI>();
-        
-        // DIAGNOSTIC 1: Are we actually finding the scripts?
-        Debug.Log($"Found {sectorEnemies.Length} enemies inside the container: {container.name}");
-        
-        foreach (EnemyAI enemy in sectorEnemies)
-        {
-            enemy.WakeUp();
-        }
+        return !isMovingToSector;
     }
-    else
-    {
-        // DIAGNOSTIC 2: Did we forget to assign the container in the Inspector?
-        Debug.LogError($"Uh oh! No enemy container assigned for {sectors[currentSectorIndex].sectorName}!");
-    }
-}
-
 }
