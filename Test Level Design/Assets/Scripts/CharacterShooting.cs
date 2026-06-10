@@ -24,7 +24,7 @@ public class CharacterShooting : MonoBehaviour
                 EnemyAI enemy = hit.collider.GetComponentInParent<EnemyAI>();
                 if (enemy != null)
                 {
-                    enemy.TakeDamage(50f);
+                    enemy.TakeDamage(100f);
                     Debug.Log("Hit");
                 }
             }

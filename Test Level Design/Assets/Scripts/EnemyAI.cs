@@ -8,25 +8,38 @@ public class EnemyAI : MonoBehaviour
     private NavMeshAgent agent;
     private Transform player;
     private LevelManager levelManager;
+    
+    // NEW: Controls whether this enemy is allowed to chase the player
+    private bool isAwake = false; 
 
     private void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        // Find the player (assumes player tag is "Player")
+        
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
 
-        // Find the LevelManager in the scene
         levelManager = FindObjectOfType<LevelManager>();
     }
 
     private void Update()
     {
-        // Move towards player if assigned
-        if (player != null)
+        // NEW: Only move if the enemy has been awakened by the LevelManager
+        if (isAwake && player != null && agent.isOnNavMesh)
         {
             agent.SetDestination(player.position);
         }
+    }
+
+    // NEW: Public method for the LevelManager to call
+    public void WakeUp()
+    {
+        isAwake = true;
+
+        bool hasPlayer = (player != null);
+        bool onMesh = agent.isOnNavMesh;
+    
+    Debug.Log($"{gameObject.name} woke up! Has Player? {hasPlayer} | Is on NavMesh? {onMesh}");
     }
 
     public void TakeDamage(float amount)
@@ -40,13 +53,10 @@ public class EnemyAI : MonoBehaviour
 
     private void Die()
     {
-        // Notify the manager
         if (levelManager != null)
         {
             levelManager.RegisterEnemyDeath();
         }
-
-        // Remove from scene
         Destroy(gameObject);
     }
 }

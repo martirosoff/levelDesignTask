@@ -184,7 +184,7 @@ MonoBehaviour:
     enemyCount: 3
     sectorEnemyContainer: {fileID: 1564759667}
   playerTransform: {fileID: 725327774}
-  moveSpeed: 2
+  moveSpeed: 2.5
   rotationSpeed: 2
 --- !u!1 &312887410
 GameObject:
@@ -536,7 +536,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1031434192}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: 3.75}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 7448046}
@@ -725,7 +725,7 @@ PrefabInstance:
     - target: {fileID: 2238910792450828001, guid: bb8f2cdf4d2934cb8b648bfdea4fad68,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 7.4
+      value: 7.5
       objectReference: {fileID: 0}
     - target: {fileID: 2238910792450828001, guid: bb8f2cdf4d2934cb8b648bfdea4fad68,
         type: 3}
@@ -1757,8 +1757,7 @@ PrefabInstance:
       propertyPath: m_Name
       value: Character
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 5928791054410499685, guid: 36dcc1896dcd6454e8eed87e9240ba32, type: 3}
+    m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 36dcc1896dcd6454e8eed87e9240ba32, type: 3}
 --- !u!1001 &5933103522628987580
 PrefabInstance:

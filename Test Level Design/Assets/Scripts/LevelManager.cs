@@ -106,6 +106,9 @@ public class LevelManager : MonoBehaviour
             
             isMovingToSector = false;
             Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName}. Combat active.");
+            
+            
+            OnArrivedAtSector();
         }
     }
     /// <summary>
@@ -137,5 +140,31 @@ public class LevelManager : MonoBehaviour
             Debug.Log("Level Completed!");
         }
     }
+
+    private void OnArrivedAtSector()
+{
+    Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName}. Combat active.");
+    
+    GameObject container = sectors[currentSectorIndex].sectorEnemyContainer;
+    
+    if (container != null)
+    {
+        // Find all EnemyAI components inside this sector's folder
+        EnemyAI[] sectorEnemies = container.GetComponentsInChildren<EnemyAI>();
+        
+        // DIAGNOSTIC 1: Are we actually finding the scripts?
+        Debug.Log($"Found {sectorEnemies.Length} enemies inside the container: {container.name}");
+        
+        foreach (EnemyAI enemy in sectorEnemies)
+        {
+            enemy.WakeUp();
+        }
+    }
+    else
+    {
+        // DIAGNOSTIC 2: Did we forget to assign the container in the Inspector?
+        Debug.LogError($"Uh oh! No enemy container assigned for {sectors[currentSectorIndex].sectorName}!");
+    }
+}
 
 }
