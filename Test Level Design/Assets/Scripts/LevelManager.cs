@@ -10,6 +10,9 @@ public class LevelManager : MonoBehaviour
         public string sectorName = "Sector";
         public Transform playerWaypoint; // Position and rotation the player moves to
         public int enemyCount;            // Total enemies to kill in this wave
+
+        // Add this: The parent object holding all enemies for this sector
+        public GameObject sectorEnemyContainer;
     }
 
     [Header("Level Setup")]
@@ -53,8 +56,17 @@ public class LevelManager : MonoBehaviour
     private void InitializeSector(int index)
     {
         currentSectorIndex = index;
-        remainingEnemies = sectors[index].enemyCount;
         isMovingToSector = true;
+
+        // Automatically count active children in the container
+    if (sectors[index].sectorEnemyContainer != null)
+    {
+        remainingEnemies = sectors[index].sectorEnemyContainer.transform.childCount;
+    }
+    else
+    {
+        remainingEnemies = 0;
+    }
         
         Debug.Log($"Advancing to {sectors[index].sectorName}. Get ready!");
     }
@@ -93,16 +105,9 @@ public class LevelManager : MonoBehaviour
             playerTransform.rotation = targetWaypoint.rotation;
             
             isMovingToSector = false;
-            OnArrivedAtSector();
+            Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName}. Combat active.");
         }
     }
-
-    private void OnArrivedAtSector()
-    {
-        Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName}. Combat active.");
-        // OPTIONAL: Trigger your enemy spawning system here if you don't want enemies present before arrival
-    }
-
     /// <summary>
     /// Call this method from your Enemy Health script whenever an enemy is destroyed.
     /// </summary>
