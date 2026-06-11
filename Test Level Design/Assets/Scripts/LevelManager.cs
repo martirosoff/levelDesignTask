@@ -1,6 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement; 
+// NEW: Required to talk to TextMeshPro UI elements
+using TMPro; 
 
 public class LevelManager : MonoBehaviour
 {
@@ -8,12 +11,14 @@ public class LevelManager : MonoBehaviour
     public class SpaceSector
     {
         public string sectorName = "Sector";
-        
-        [Tooltip("The sequential list of points the player follows to reach this sector. The last point is the combat station.")]
+        [Tooltip("The sequential list of points the player follows to reach this sector.")]
         public List<Transform> movementPath = new List<Transform>(); 
-        
         public GameObject sectorEnemyContainer; 
     }
+
+    [Header("UI Settings")]
+    [Tooltip("Drag your TextMeshPro UI element here to display the level name.")]
+    [SerializeField] private TextMeshProUGUI levelNameText; // NEW: The UI reference
 
     [Header("Level Setup")]
     [SerializeField] private List<SpaceSector> sectors = new List<SpaceSector>();
@@ -23,8 +28,11 @@ public class LevelManager : MonoBehaviour
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float rotationSpeed = 2f;
 
+    [Header("Scene Transition")]
+    [SerializeField] private string nextSceneName;
+
     private int currentSectorIndex = 0;
-    private int currentPathPointIndex = 0; // NEW: Tracks the current node in the sector's path
+    private int currentPathPointIndex = 0; 
     private int remainingEnemies;
     private bool isMovingToSector = false;
 
@@ -56,9 +64,8 @@ public class LevelManager : MonoBehaviour
     private void InitializeSector(int index)
     {
         currentSectorIndex = index;
-        currentPathPointIndex = 0; // NEW: Reset path progress back to the first point
+        currentPathPointIndex = 0; 
         
-        // Safety check: Make sure the sector actually has at least one movement point
         if (sectors[index].movementPath == null || sectors[index].movementPath.Count == 0)
         {
             Debug.LogError($"Sector {index} ({sectors[index].sectorName}) has no movement points assigned!");
@@ -76,53 +83,48 @@ public class LevelManager : MonoBehaviour
             remainingEnemies = 0;
         }
         
+        // NEW: Update the UI Text to show the Scene Name and the Sector Name!
+        if (levelNameText != null)
+        {
+            string currentScene = SceneManager.GetActiveScene().name;
+            string currentSector = sectors[index].sectorName;
+            levelNameText.text = $"{currentScene} - {currentSector}";
+        }
+        
         Debug.Log($"Advancing to {sectors[index].sectorName}. Traveling along path...");
     }
 
     private void ExecuteMovement()
     {
-        // NEW: Get the exact target point we are currently heading towards in the list
         List<Transform> activePath = sectors[currentSectorIndex].movementPath;
         Transform targetWaypoint = activePath[currentPathPointIndex];
 
-        if (targetWaypoint == null)
-        {
-            Debug.LogError($"Sector {currentSectorIndex} is missing waypoint index {currentPathPointIndex}!");
-            isMovingToSector = false;
-            return;
-        }
+        if (targetWaypoint == null) return;
 
-        // Lerp position
         playerTransform.position = Vector3.MoveTowards(
             playerTransform.position, 
             targetWaypoint.position, 
             moveSpeed * Time.deltaTime
         );
 
-        // Lerp rotation
         playerTransform.rotation = Quaternion.Slerp(
             playerTransform.rotation, 
             targetWaypoint.rotation, 
             rotationSpeed * Time.deltaTime
         );
 
-        // Check if player has arrived at this specific path point
         if (Vector3.Distance(playerTransform.position, targetWaypoint.position) < 0.01f &&
             Quaternion.Angle(playerTransform.rotation, targetWaypoint.rotation) < 1f)
         {
-            // Snap cleanly to prevent subtle drifting
             playerTransform.position = targetWaypoint.position;
             playerTransform.rotation = targetWaypoint.rotation;
             
-            // NEW: Check if there are more points left in this sector's path
             if (currentPathPointIndex < activePath.Count - 1)
             {
-                currentPathPointIndex++; // Target the next point on the next frame
-                Debug.Log($"Reached point {currentPathPointIndex - 1}. Moving to point {currentPathPointIndex}.");
+                currentPathPointIndex++; 
             }
             else
             {
-                // We reached the final point of the path! Stop moving and start combat.
                 isMovingToSector = false;
                 OnArrivedAtSector();
             }
@@ -131,8 +133,6 @@ public class LevelManager : MonoBehaviour
 
     private void OnArrivedAtSector()
     {
-        Debug.Log($"Arrived at {sectors[currentSectorIndex].sectorName} final station. Combat active.");
-        
         GameObject container = sectors[currentSectorIndex].sectorEnemyContainer;
         if (container != null)
         {
@@ -142,7 +142,10 @@ public class LevelManager : MonoBehaviour
                 enemy.WakeUp();
             }
         }
-        else Debug.Log("Level Completed!");
+        else 
+        {
+            LoadNextLevel(); 
+        }
     }
 
     public void RegisterEnemyDeath()
@@ -150,7 +153,6 @@ public class LevelManager : MonoBehaviour
         if (isMovingToSector) return; 
 
         remainingEnemies--;
-        Debug.Log($"Enemy killed! Remaining in sector: {remainingEnemies}");
 
         if (remainingEnemies <= 0)
         {
@@ -168,7 +170,24 @@ public class LevelManager : MonoBehaviour
         }
         else
         {
-            Debug.Log("Level Completed!");
+            LoadNextLevel(); 
+        }
+    }
+
+    private void LoadNextLevel()
+    {
+        if (!string.IsNullOrEmpty(nextSceneName))
+        {
+            SceneManager.LoadScene(nextSceneName);
+        }
+        else
+        {
+            int nextSceneIndex = SceneManager.GetActiveScene().buildIndex + 1;
+            
+            if (nextSceneIndex < SceneManager.sceneCountInBuildSettings)
+            {
+                SceneManager.LoadScene(nextSceneIndex);
+            }
         }
     }
 
