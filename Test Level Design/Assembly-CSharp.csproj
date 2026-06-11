@@ -38,6 +38,7 @@
   <ItemGroup>
      <Compile Include="Assets\Scripts\CharacterShooting.cs" />
      <Compile Include="Assets\Scripts\EnemyAI.cs" />
+     <Compile Include="Assets\Scripts\ExplosiveBarrel.cs" />
      <Compile Include="Assets\Scripts\LevelManager.cs" />
      <None Include="Assets\Materials\Fog1.shader" />
      <None Include="Assets\FX\Shaders\Premultiply.shader" />
