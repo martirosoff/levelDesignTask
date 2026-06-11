@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement; 
-// NEW: Required to talk to TextMeshPro UI elements
 using TMPro; 
 
 public class LevelManager : MonoBehaviour
@@ -18,7 +17,12 @@ public class LevelManager : MonoBehaviour
 
     [Header("UI Settings")]
     [Tooltip("Drag your TextMeshPro UI element here to display the level name.")]
-    [SerializeField] private TextMeshProUGUI levelNameText; // NEW: The UI reference
+    [SerializeField] private TextMeshProUGUI levelNameText; 
+    
+    // NEW: A slot for the start button so we can hide it once clicked
+    [Tooltip("Drag your Start Button GameObject here.")]
+    [SerializeField] private GameObject startButtonContainer; 
+    [SerializeField] private GameObject startBackgroundImageContainer; 
 
     [Header("Level Setup")]
     [SerializeField] private List<SpaceSector> sectors = new List<SpaceSector>();
@@ -34,7 +38,9 @@ public class LevelManager : MonoBehaviour
     private int currentSectorIndex = 0;
     private int currentPathPointIndex = 0; 
     private int remainingEnemies;
+    
     private bool isMovingToSector = false;
+    private bool hasLevelStarted = false; // NEW: Tracks if the button was pressed
 
     private void Start()
     {
@@ -43,14 +49,19 @@ public class LevelManager : MonoBehaviour
             playerTransform = Camera.main.transform;
         }
 
-        if (sectors.Count > 0)
-        {
-            InitializeSector(0);
-        }
-        else
+        if (sectors.Count == 0)
         {
             Debug.LogError("No space sectors defined in the LevelManager!");
         }
+
+        // Optional: Show a "Ready" message before the button is pressed
+        if (levelNameText != null)
+        {
+            levelNameText.text = $"{SceneManager.GetActiveScene().name} - Ready";
+        }
+        
+        // Notice we REMOVED InitializeSector(0) from here! 
+        // We now wait for the button click.
     }
 
     private void Update()
@@ -58,6 +69,28 @@ public class LevelManager : MonoBehaviour
         if (isMovingToSector)
         {
             ExecuteMovement();
+        }
+    }
+
+    // NEW: The method the UI Button will call to kick off the game
+    public void StartLevel()
+    {
+        // Prevent double-clicking
+        if (hasLevelStarted) return; 
+        
+        hasLevelStarted = true;
+
+        // Hide the button from the screen
+        if (startButtonContainer != null)
+        {
+            startButtonContainer.SetActive(false);
+            startBackgroundImageContainer.SetActive(false);
+        }
+
+        // Begin the first sector!
+        if (sectors.Count > 0)
+        {
+            InitializeSector(0);
         }
     }
 
@@ -83,7 +116,6 @@ public class LevelManager : MonoBehaviour
             remainingEnemies = 0;
         }
         
-        // NEW: Update the UI Text to show the Scene Name and the Sector Name!
         if (levelNameText != null)
         {
             string currentScene = SceneManager.GetActiveScene().name;
@@ -193,6 +225,7 @@ public class LevelManager : MonoBehaviour
 
     public bool IsCombatActive()
     {
-        return !isMovingToSector;
+        // UPDATED: Combat is only active if the level has actually started AND we are not moving!
+        return hasLevelStarted && !isMovingToSector;
     }
 }
