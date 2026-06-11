@@ -142,6 +142,7 @@ public class LevelManager : MonoBehaviour
                 enemy.WakeUp();
             }
         }
+        else Debug.Log("Level Completed!");
     }
 
     public void RegisterEnemyDeath()
