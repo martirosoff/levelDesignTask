@@ -3,8 +3,18 @@ using UnityEngine.EventSystems;
 
 public class CharacterShooting : MonoBehaviour
 {
-    private Camera mainCamera;
+    [Header("Shooting Settings")]
     [SerializeField] private LayerMask enemyLayer; 
+    
+    [Header("Visual Effects")]
+    [Tooltip("The tip of the gun where the flash should appear.")]
+    [SerializeField] private Transform firePoint; 
+    [Tooltip("The particle effect to play when firing.")]
+    [SerializeField] private GameObject muzzleFlashPrefab; 
+    [Tooltip("The spark/blood effect to play where the bullet hits.")]
+    [SerializeField] private GameObject hitEffectPrefab; 
+
+    private Camera mainCamera;
     private LevelManager levelManager;
 
     private void Start()
@@ -20,21 +30,18 @@ public class CharacterShooting : MonoBehaviour
 
     private void Update()
     {
-        // 1. Are we moving or waiting to start? If so, lock the gun.
         if (levelManager != null && !levelManager.IsCombatActive())
         {
             return; 
         }
 
-        // 2. MOBILE INPUT (Android / iOS)
+        // MOBILE INPUT (Android / iOS)
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
 
-            // Only fire the exact moment the finger touches the screen
             if (touch.phase == TouchPhase.Began)
             {
-                // Touch-specific UI check (requires the fingerId to work!)
                 if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject(touch.fingerId))
                 {
                     return; 
@@ -43,10 +50,9 @@ public class CharacterShooting : MonoBehaviour
                 FireRaycast(touch.position);
             }
         }
-        // 3. PC / EDITOR INPUT (Mouse)
+        // PC / EDITOR INPUT (Mouse)
         else if (Input.GetMouseButtonDown(0))
         {
-            // Mouse-specific UI check
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
             {
                 return; 
@@ -56,15 +62,32 @@ public class CharacterShooting : MonoBehaviour
         }
     }
 
-    // NEW: We moved the Raycast down here so we don't have to write it twice!
     private void FireRaycast(Vector3 screenPosition)
     {
         if (mainCamera == null) return;
+
+        // 1. Play Muzzle Flash immediately when the trigger is pulled
+        if (muzzleFlashPrefab != null && firePoint != null)
+        {
+            // Spawn the flash attached to the firePoint so it moves with the gun
+            GameObject flash = Instantiate(muzzleFlashPrefab, firePoint.position, firePoint.rotation, firePoint);
+            // Destroy the flash object after a fraction of a second so it doesn't clutter the game
+            Destroy(flash, 0.15f); 
+        }
 
         Ray ray = mainCamera.ScreenPointToRay(screenPosition);
         
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, enemyLayer))
         {
+            // 2. Play Hit Effect exactly where the raycast struck the object
+            if (hitEffectPrefab != null)
+            {
+                // Quaternion.LookRotation(hit.normal) makes the sparks fly OUTWARD from the surface we hit!
+                GameObject impact = Instantiate(hitEffectPrefab, hit.point, Quaternion.LookRotation(hit.normal));
+                // Destroy the spark object after 2 seconds
+                Destroy(impact, 1f);
+            }
+
             // Did we hit an enemy?
             EnemyAI enemy = hit.collider.GetComponentInParent<EnemyAI>();
             if (enemy != null)
