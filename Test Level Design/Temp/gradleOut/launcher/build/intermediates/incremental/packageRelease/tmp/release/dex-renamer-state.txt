@@ -1,0 +1,4 @@
+#Fri Jun 12 03:39:23 AMT 2026
+base.0=/Users/art/Public/Rep/levelDesignTask/Test Level Design/Temp/gradleOut/launcher/build/intermediates/transforms/dexMerger/release/0
+path.0=classes.dex
+renamed.0=classes.dex
