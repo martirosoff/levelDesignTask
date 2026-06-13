@@ -207,7 +207,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8584f5971da58466c94b0daa1bd598b3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  health: 200
+  health: 400
   healthBarPrefab: {fileID: 2988481197393299146, guid: a8903b486c31b4bc7aa15e592e45ec33,
     type: 3}
   attackRange: 1.5

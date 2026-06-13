@@ -4,18 +4,32 @@ using UnityEngine.EventSystems;
 public class CharacterShooting : MonoBehaviour
 {
     [Header("Shooting Settings")]
+    [SerializeField] private float fireRate = 0.25f; 
     [SerializeField] private LayerMask enemyLayer; 
     
+    [Header("Recoil Settings")]
+    [Tooltip("The 3D model of your gun. If left empty, it will recoil whatever object this script is on.")]
+    [SerializeField] private Transform weaponModel;
+    [Tooltip("How much the gun rotates when fired (X is up/down, Y and Z are side-to-side).")]
+    [SerializeField] private Vector3 recoilRotation = new Vector3(-10f, 2f, 1f);
+    [Tooltip("How fast the gun violently kicks up.")]
+    [SerializeField] private float recoilSnappiness = 20f;
+    [Tooltip("How fast the gun smoothly returns to its resting position.")]
+    [SerializeField] private float recoilReturnSpeed = 10f;
+
     [Header("Visual Effects")]
-    [Tooltip("The tip of the gun where the flash should appear.")]
     [SerializeField] private Transform firePoint; 
-    [Tooltip("The particle effect to play when firing.")]
     [SerializeField] private GameObject muzzleFlashPrefab; 
-    [Tooltip("The spark/blood effect to play where the bullet hits.")]
     [SerializeField] private GameObject hitEffectPrefab; 
 
     private Camera mainCamera;
     private LevelManager levelManager;
+    private float nextFireTime = 0f; 
+
+    // NEW: Variables to track the mathematical spring effect
+    private Vector3 currentRecoilRotation;
+    private Vector3 targetRecoilRotation;
+    private Quaternion startingWeaponRotation;
 
     private void Start()
     {
@@ -26,16 +40,39 @@ public class CharacterShooting : MonoBehaviour
         {
             Debug.LogError("CharacterShooting: Could not find the LevelManager in the scene!");
         }
+
+        // If you didn't assign a weapon model in the inspector, it targets this object
+        if (weaponModel == null)
+        {
+            weaponModel = transform;
+        }
+
+        // Save the original rotation of the gun so it knows exactly where "Zero" is
+        startingWeaponRotation = weaponModel.localRotation;
     }
 
     private void Update()
     {
+        // ---> 1. PROCESS RECOIL FIRST <---
+        // We put this at the very top of Update! This ensures the gun is always smoothly returning to 
+        // its resting position, even if the player dies, pauses, or is waiting for a sector to start.
+        targetRecoilRotation = Vector3.Lerp(targetRecoilRotation, Vector3.zero, recoilReturnSpeed * Time.deltaTime);
+        currentRecoilRotation = Vector3.Slerp(currentRecoilRotation, targetRecoilRotation, recoilSnappiness * Time.deltaTime);
+        weaponModel.localRotation = startingWeaponRotation * Quaternion.Euler(currentRecoilRotation);
+
+        // 2. Are we in combat?
         if (levelManager != null && !levelManager.IsCombatActive())
         {
             return; 
         }
 
-        // MOBILE INPUT (Android / iOS)
+        // 3. Has enough time passed since our last shot?
+        if (Time.time < nextFireTime)
+        {
+            return; 
+        }
+
+        // MOBILE INPUT
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
@@ -50,7 +87,7 @@ public class CharacterShooting : MonoBehaviour
                 FireRaycast(touch.position);
             }
         }
-        // PC / EDITOR INPUT (Mouse)
+        // PC / EDITOR INPUT
         else if (Input.GetMouseButtonDown(0))
         {
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
@@ -66,29 +103,29 @@ public class CharacterShooting : MonoBehaviour
     {
         if (mainCamera == null) return;
 
-        // 1. Play Muzzle Flash immediately when the trigger is pulled
+        nextFireTime = Time.time + fireRate;
+
+        // ---> 4. APPLY THE RECOIL <---
+        // Instead of just setting the rotation, we ADD it to the target. This way, if you shoot rapidly, 
+        // the gun kicks higher and higher! We also add a random side-to-side variance so it feels organic.
+        targetRecoilRotation += new Vector3(recoilRotation.x, Random.Range(-recoilRotation.y, recoilRotation.y), Random.Range(-recoilRotation.z, recoilRotation.z));
+
         if (muzzleFlashPrefab != null && firePoint != null)
         {
-            // Spawn the flash attached to the firePoint so it moves with the gun
             GameObject flash = Instantiate(muzzleFlashPrefab, firePoint.position, firePoint.rotation, firePoint);
-            // Destroy the flash object after a fraction of a second so it doesn't clutter the game
-            Destroy(flash, 0.15f); 
+            Destroy(flash, 0.1f); 
         }
 
         Ray ray = mainCamera.ScreenPointToRay(screenPosition);
         
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, enemyLayer))
         {
-            // 2. Play Hit Effect exactly where the raycast struck the object
             if (hitEffectPrefab != null)
             {
-                // Quaternion.LookRotation(hit.normal) makes the sparks fly OUTWARD from the surface we hit!
                 GameObject impact = Instantiate(hitEffectPrefab, hit.point, Quaternion.LookRotation(hit.normal));
-                // Destroy the spark object after 2 seconds
-                Destroy(impact, 1f);
+                Destroy(impact, 2f);
             }
 
-            // Did we hit an enemy?
             EnemyAI enemy = hit.collider.GetComponentInParent<EnemyAI>();
             if (enemy != null)
             {
@@ -96,7 +133,6 @@ public class CharacterShooting : MonoBehaviour
                 return; 
             }
 
-            // Did we hit an explosive barrel?
             ExplosiveBarrel barrel = hit.collider.GetComponentInParent<ExplosiveBarrel>();
             if (barrel != null)
             {
