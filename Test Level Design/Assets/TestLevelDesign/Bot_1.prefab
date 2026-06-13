@@ -207,6 +207,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health: 100
+  attackRange: 1.5
 --- !u!65 &860978953287295889
 BoxCollider:
   m_ObjectHideFlags: 0

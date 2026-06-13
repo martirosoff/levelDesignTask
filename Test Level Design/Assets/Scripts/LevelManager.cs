@@ -41,7 +41,8 @@ public class LevelManager : MonoBehaviour
     
     private bool isMovingToSector = false;
     private bool hasLevelStarted = false; // NEW: Tracks if the button was pressed
-
+    private bool isGameOver = false; // NEW: Tracks if the player is dead
+    
     private void Start()
     {
         if (playerTransform == null && Camera.main != null)
@@ -222,10 +223,34 @@ public class LevelManager : MonoBehaviour
             }
         }
     }
-
+    
     public bool IsCombatActive()
     {
-        // UPDATED: Combat is only active if the level has actually started AND we are not moving!
-        return hasLevelStarted && !isMovingToSector;
+        // Combat is only active if the level started, we aren't moving, AND we aren't dead!
+        return hasLevelStarted && !isMovingToSector && !isGameOver;
+    }
+
+    // This is called by the enemy when it reaches the player
+    public void GameOver()
+    {
+        if (isGameOver) return; // Prevent multiple enemies from triggering this at once
+        
+        isGameOver = true;
+        Debug.Log("Player Killed! Game Over.");
+
+        // Update the UI so the player knows they died
+        if (levelNameText != null)
+        {
+            levelNameText.text = "<color=red>GAME OVER</color>";
+        }
+
+        // Wait 2 seconds, then execute the RestartLevel method
+        Invoke(nameof(RestartLevel), 2f);
+    }
+
+    private void RestartLevel()
+    {
+        // Load the exact same scene we are currently in
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
