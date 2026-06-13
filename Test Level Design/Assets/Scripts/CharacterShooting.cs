@@ -136,7 +136,7 @@ public class CharacterShooting : MonoBehaviour
             ExplosiveBarrel barrel = hit.collider.GetComponentInParent<ExplosiveBarrel>();
             if (barrel != null)
             {
-                barrel.TakeDamage(100f); 
+                barrel.TakeDamage(200f); 
             }
         }
     }

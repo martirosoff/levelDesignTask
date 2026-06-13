@@ -87,14 +87,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 564aefb2e341e463b8198f139da14eaf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  fireRate: 0.5
+  fireRate: 0.25
   enemyLayer:
     serializedVersion: 2
     m_Bits: 256
   weaponModel: {fileID: 8158452364564714888}
   recoilRotation: {x: -10, y: 10, z: 0}
   recoilSnappiness: 30
-  recoilReturnSpeed: 3
+  recoilReturnSpeed: 6
   firePoint: {fileID: 8265093000632906498}
   muzzleFlashPrefab: {fileID: 3670802975293219866, guid: f9e0036d959d1486497ed5e705e8a753,
     type: 3}
