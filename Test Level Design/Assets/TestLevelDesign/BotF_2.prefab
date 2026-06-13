@@ -208,6 +208,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health: 200
+  healthBarPrefab: {fileID: 2988481197393299146, guid: a8903b486c31b4bc7aa15e592e45ec33,
+    type: 3}
+  attackRange: 1.5
 --- !u!1 &604778570849030853
 GameObject:
   m_ObjectHideFlags: 0

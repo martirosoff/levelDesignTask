@@ -207,6 +207,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   health: 100
+  healthBarPrefab: {fileID: 2988481197393299146, guid: 6fea554a909174c80840f5a07879bf54,
+    type: 3}
   attackRange: 1.5
 --- !u!65 &860978953287295889
 BoxCollider:
