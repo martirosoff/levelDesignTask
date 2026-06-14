@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.UI; // Required to control the health bar UI
+using UnityEngine.UI; 
 
 [RequireComponent(typeof(NavMeshAgent))]
 public class EnemyAI : MonoBehaviour
@@ -22,6 +22,9 @@ public class EnemyAI : MonoBehaviour
     private bool hasAttacked = false; 
     private float maxHealth;
     
+    // Tracks if the enemy is already dead to prevent explosion double-kills
+    private bool isDead = false; 
+    
     private GameObject activeHealthBar;
     private Image healthBarFill;
 
@@ -30,20 +33,16 @@ public class EnemyAI : MonoBehaviour
         maxHealth = health;
         agent = GetComponent<NavMeshAgent>();
         
-        // Find the player in the scene
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
 
-        // Find the level manager in the scene
         levelManager = FindObjectOfType<LevelManager>();
 
-        // UPDATED: Spawns the health bar for ALL enemies if the prefab is assigned
+        // Spawns the health bar for ALL enemies if the prefab is assigned
         if (healthBarPrefab != null)
         {
-            // Spawn the health bar 2 units above the enemy's head, and make it a child of this enemy
             activeHealthBar = Instantiate(healthBarPrefab, transform.position + Vector3.up * 2f, Quaternion.identity, transform);
             
-            // Bulletproof lookup: Look through all images in the spawned UI to find the one named "Fill"
             Image[] images = activeHealthBar.GetComponentsInChildren<Image>();
             foreach (Image img in images)
             {
@@ -54,7 +53,6 @@ public class EnemyAI : MonoBehaviour
                 }
             }
             
-            // Fallback: If no image was explicitly named "Fill", just grab the last one found
             if (healthBarFill == null && images.Length > 0)
             {
                 healthBarFill = images[images.Length - 1];
@@ -69,7 +67,6 @@ public class EnemyAI : MonoBehaviour
         {
             agent.SetDestination(player.position);
 
-            // Check the distance between the enemy and the player
             float distanceToPlayer = Vector3.Distance(transform.position, player.position);
             
             if (distanceToPlayer <= attackRange)
@@ -101,7 +98,6 @@ public class EnemyAI : MonoBehaviour
         }
     }
 
-    // Called by LevelManager to make enemies start chasing
     public void WakeUp()
     {
         isAwake = true;
@@ -109,6 +105,9 @@ public class EnemyAI : MonoBehaviour
 
     public void TakeDamage(float amount)
     {
+        // If they are already dead, ignore the explosion/bullets entirely!
+        if (isDead) return; 
+
         health -= amount;
 
         // Update their health bar slider fill
@@ -125,13 +124,16 @@ public class EnemyAI : MonoBehaviour
 
     private void Die()
     {
-        // NEW: Disable the healthbar immediately so it doesn't float in the air while the body falls
+        // Lock the enemy state so they can't be killed twice by overlapping hitboxes
+        isDead = true; 
+
+        // Disable the healthbar immediately so it doesn't float over their dead body
         if (activeHealthBar != null)
         {
             activeHealthBar.SetActive(false);
         }
 
-        // 1. Tell the LevelManager an enemy died so it can track progress
+        // 1. Tell the LevelManager an enemy died
         if (levelManager != null)
         {
             levelManager.RegisterEnemyDeath();
