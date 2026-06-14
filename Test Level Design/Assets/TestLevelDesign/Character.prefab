@@ -92,9 +92,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   weaponModel: {fileID: 8158452364564714888}
-  recoilRotation: {x: -10, y: 10, z: 0}
-  recoilSnappiness: 30
-  recoilReturnSpeed: 6
+  recoilRotation: {x: -10, y: 20, z: -5}
+  recoilSnappiness: 40
+  recoilReturnSpeed: 15
   firePoint: {fileID: 8265093000632906498}
   muzzleFlashPrefab: {fileID: 3670802975293219866, guid: f9e0036d959d1486497ed5e705e8a753,
     type: 3}
